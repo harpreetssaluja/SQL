@@ -1,0 +1,20 @@
+%%sql
+WITH calc AS (SELECT Participant_Code, Outage_Reason, Year, 
+        COUNT(Participant_Code) AS Total_Number_Outage_Events, 
+        AVG(ABS(JULIANDAY(End_Time) - JULIANDAY(Start_Time))) AS Average_Outage_Duration_In_Days, 
+        Status
+FROM AEMR_Outage_Table
+GROUP BY Participant_Code, Outage_Reason, Year, Status)
+
+SELECT Participant_Code, Outage_Reason, Year, Total_Number_Outage_Events, Average_Outage_Duration_In_Days, 
+    CASE 
+                WHEN Outage_Reason != 'Forced' THEN 'N/A'
+                WHEN Average_Outage_Duration_In_Days < 0.5 OR Total_Number_Outage_Events > 20 THEN 'Low Risk'
+                WHEN (Average_Outage_Duration_In_Days >= 0.5 AND Average_Outage_Duration_In_Days <= 1) OR 
+                    (Total_Number_Outage_Events >= 10 AND Total_Number_Outage_Events <= 20) THEN 'Medium Risk'
+                WHEN Average_Outage_Duration_In_Days > 1 OR Total_Number_Outage_Events < 10 THEN 'High Risk'
+        END AS Risk_Classification
+FROM calc
+WHERE Status = 'Approved'
+GROUP BY  Year, Participant_Code, Outage_Reason, Risk_Classification
+ORDER BY Total_Number_Outage_Events DESC, Year, Outage_Reason;
