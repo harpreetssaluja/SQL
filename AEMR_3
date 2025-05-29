@@ -1,0 +1,8 @@
+%%sql
+SELECT Participant_Code, Outage_Reason, Year, 
+        COUNT(Participant_Code) AS Total_Number_Outage_Events, 
+        AVG(ABS(JULIANDAY(End_Time) - JULIANDAY(Start_Time))) AS Average_Outage_Duration_In_Days
+FROM AEMR_Outage_Table
+WHERE Status = 'Approved'
+GROUP BY  Year, Participant_Code, Outage_Reason
+ORDER BY Total_Number_Outage_Events DESC, Year, Outage_Reason;
