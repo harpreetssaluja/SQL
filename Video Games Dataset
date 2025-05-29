@@ -1,0 +1,111 @@
+/* Q1
+SELECT publisher, SUM(global_sales) AS Sum_sales
+FROM VG_Retail_Sales_DB
+GROUP BY publisher
+ORDER BY Sum_sales DESC
+LIMIT 10; 
+*/
+
+
+/* Q2
+SELECT platform, SUM (global_sales) AS sumsales
+FROM VG_Retail_Sales_DB
+GROUP BY platform
+ORDER by sumsales DESC 
+*/
+
+
+/* Q3
+SELECT
+Platform, Year, MAX(sumsales) 
+
+FROM (
+SELECT platform, year,  SUM(global_sales) AS sumsales
+FROM VG_Retail_Sales_DB
+GROUP BY platform
+ORDER BY sumsales DESC) 
+*/
+
+
+/* Q4
+WITH Agg_Sales AS (
+SELECT genre, SUM(global_sales) AS Sum_sales
+FROM VG_Retail_Sales_DB
+GROUP BY genre
+ORDER BY Sum_sales DESC)
+
+SELECT 
+genre,
+MAX(Sum_sales)
+FROM Agg_Sales; */
+
+
+/* Q5
+SELECT publisher, SUM(global_sales) AS sumsales
+FROM VG_Retail_Sales_DB
+GROUP BY publisher
+ORDER BY sumsales DESC
+LIMIT 1; */
+
+/*Q6
+SELECT name, publisher, SUM(global_sales) AS sumsales
+FROM VG_Retail_Sales_DB
+WHERE publisher IN ('Electronic Arts', 'Activision') 
+GROUP BY name, publisher
+HAVING sumsales > 5
+ORDER by Publisher, sumsales; */
+
+/* Q7
+SELECT publisher, COUNT(name), SUM(sumsales)
+FROM (
+	SELECT name, publisher, SUM (global_sales) AS sumsales
+	FROM VG_Retail_Sales_DB
+  	GROUP BY name, publisher
+  	HAVING sumsales > 5)
+WHERE publisher IN ('Electronic Arts','Nintendo', 'Activision', 'Ubisoft')
+GROUP BY publisher
+ORDER by SUM(sumsales) DESC; */
+
+/*
+SELECT publisher, ROUND (SUM(global_sales)*100.00/ 
+                       (SELECT SUM(global_sales)
+                        FROM VG_Retail_Sales_DB), 
+                        2) AS percent_total_sales
+FROM VG_Retail_Sales_DB
+GROUP BY publisher
+ORDER BY SUM(global_sales) DESC; */
+
+/* Q9
+SELECT platform, ROUND(COUNT (name) * 100.00/ (
+  SELECT COUNT (name)
+  FROM VG_Retail_Sales_DB), 
+  2) AS percentgames
+FROM VG_Retail_Sales_DB
+GROUP by platform
+ORDER by percentgames DESC; */
+
+/* Q10
+WITH numgames AS (SELECT COUNT(name) AS totalgames
+                  FROM VG_Retail_Sales_DB), 
+overallsales AS (SELECT SUM(global_sales) AS totalsales
+                  FROM VG_Retail_Sales_DB)
+
+SELECT genre, 
+	ROUND(COUNT(name)*100.00/ totalgames, 2) AS percent_games,
+	ROUND(SUM(global_sales)* 100.00/totalsales, 2) AS percent_sales
+FROM VG_Retail_Sales_DB, numgames, overallsales
+GROUP BY genre
+ORDER by percent_games, percent_sales DESC;
+*/
+
+
+/* Q10
+SELECT platform, publisher, ROUND(COUNT (name) * 100.00/
+                       (SELECT COUNT(name)
+                         FROM VG_Retail_Sales_DB
+                       	WHERE publisher IN ('Electronic Arts', 'Nintendo', 'Activision', 'Ubisoft')),                       
+                       2) AS percent_of_total
+FROM VG_Retail_Sales_DB
+WHERE publisher IN ('Electronic Arts', 'Nintendo', 'Activision', 'Ubisoft')
+GROUP BY publisher, platform
+ORDER BY percent_of_total DESC; */
