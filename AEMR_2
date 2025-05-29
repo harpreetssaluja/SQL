@@ -1,0 +1,6 @@
+%%sql
+SELECT Year, Month, COUNT (Outage_Reason) AS Total_Number_Outages
+FROM AEMR_Outage_Table
+WHERE Status = 'Approved'
+GROUP BY Year, Month
+ORDER BY YEar, MONTH, Total_Number_Outages;
