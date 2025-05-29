@@ -1,0 +1,63 @@
+/* Q1
+SELECT 
+	c4 as Occupation, 
+	C19 as Avg_extra
+FROM IndianPersonalFinanceData
+Group BY Occupation
+OrDER BY Avg_extra DESC
+LIMIT 10; 
+*/
+
+/*Q2
+SELECT 
+AVG(c7) AS avg_loan,
+CASE 
+	WHEN c2 >= 10 AND c2 <= 19 THEN 'Teens'
+	WHEN c2 >= 20 AND c2 <= 29 THEN '20s'
+    WHEN c2 >= 30 AND c2 <= 39 THEN '30s'
+    WHEN c2 >= 40 AND c2 <= 49 THEN '40s'
+    WHEN c2 >= 50 AND c2 <= 59 THEN '50s'
+    ELSE '60s' END AS Age_range
+FROM IndianPersonalFinanceData
+GROUP BY Age_range
+ORDER BY Age_range; 
+*/
+
+/* Q3
+SELECT c4 as Occupation, 
+AVG(c8) AS insurance
+FROM IndianPersonalFinanceData
+GROUP BY Occupation
+ORDER by insurance DESC
+LIMIT 1; 
+*/
+
+/* Q5
+SELECT c4 AS Occupation, (c12/c1) * 100 AS entertainment_percent
+FROM IndianPersonalFinanceData
+WHERE c12 > 0.1 * c11
+ORDER BY entertainment_percent; 
+*/
+
+/* Q6
+SELECT c4 as occupation, 
+c18 AS desired_savings, 
+c19 AS disposable_income
+FROM IndianPersonalFinanceData
+WHERE desired_savings < disposable_income
+ORDER by desired_savings, disposable_income; 
+*/
+
+/* Q7
+SELECT c4 AS occupation, 
+ROUND(COUNT (c4) * 100.00 /
+	(SELECT COUNT(*) FROM IndianPersonalFinanceData), 2)
+	AS proportion, 
+c19 AS disposable_income
+FROM IndianPersonalFinanceData
+WHERE disposable_income > 10000
+GROUP BY Occupation
+ORDER by proportion DESC
+LIMIT 5; 
+*/ 
+
