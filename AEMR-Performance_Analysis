@@ -1,0 +1,206 @@
+import requests
+from IPython.core.magic import register_line_magic
+from IPython.display import HTML
+import sqlite3
+
+@register_line_magic
+def load_sqlite_db(url):
+    response = requests.get(url)
+
+    if response.status_code == 200:
+        with open('temp_db_file.db', 'wb') as file:
+            file.write(response.content)
+        print('SQLite database file downloaded successfully.')
+    else:
+        print('Failed to download the SQLite database file.')
+
+sqlite_db_url = 'https://raw.githubusercontent.com/chrishuisb1990/practice_datasets/main/AEMR.db'
+
+%load_sqlite_db $sqlite_db_url
+
+%load_ext sql
+
+%sql sqlite:///temp_db_file.db
+
+%config SqlMagic.style = '_DEPRECATED_DEFAULT'
+
+
+
+#################################################################
+# Sort Outage Events by their reason.
+%%sql
+SELECT 
+Outage_Reason, 
+Year, 
+COUNT(Outage_Reason) AS Total_number_Outages
+FROM AEMR_Outage_Table
+WHERE Status = 'Approved'
+GROUP BY Outage_Reason, Year
+ORDER BY  Year, Total_number_Outages DESC;
+
+################################################################
+# All outage types grouped by year nad month where status is approved.
+%%sql
+SELECT Year, Month, COUNT (Outage_Reason) AS Total_Number_Outages
+FROM AEMR_Outage_Table
+WHERE Status = 'Approved'
+GROUP BY Year, Month
+ORDER BY YEar, MONTH, Total_Number_Outages;
+
+################################################################
+# Find num of events and duration for each participant based on reason. 
+%%sql
+SELECT Participant_Code, Outage_Reason, Year, 
+        COUNT(Participant_Code) AS Total_Number_Outage_Events, 
+        AVG(ABS(JULIANDAY(End_Time) - JULIANDAY(Start_Time))) AS Average_Outage_Duration_In_Days
+FROM AEMR_Outage_Table
+WHERE Status = 'Approved'
+GROUP BY  Year, Participant_Code, Outage_Reason
+ORDER BY Total_Number_Outage_Events DESC, Year, Outage_Reason;
+
+################################################################
+# Add a risk classification based on duration to the prior query. 
+%%sql
+WITH calc AS (SELECT Participant_Code, Outage_Reason, Year, 
+        COUNT(Participant_Code) AS Total_Number_Outage_Events, 
+        AVG(ABS(JULIANDAY(End_Time) - JULIANDAY(Start_Time))) AS Average_Outage_Duration_In_Days, 
+        Status
+FROM AEMR_Outage_Table
+GROUP BY Participant_Code, Outage_Reason, Year, Status)
+
+SELECT Participant_Code, Outage_Reason, Year, Total_Number_Outage_Events, Average_Outage_Duration_In_Days, 
+    CASE 
+                WHEN Average_Outage_Duration_In_Days < 0.5 THEN 'Low Risk'
+                WHEN Average_Outage_Duration_In_Days >= 0.5 AND Average_Outage_Duration_In_Days < 1 THEN 'Medium Risk'
+                WHEN Average_Outage_Duration_In_Days > 1 THEN 'High Risk'
+        END AS Risk_Classification
+FROM calc
+WHERE Status = 'Approved'
+GROUP BY  Year, Participant_Code, Outage_Reason, Risk_Classification
+ORDER BY Total_Number_Outage_Events DESC, Year, Outage_Reason;
+
+################################################################
+# Add number of events to risk classifcation too. 
+%%sql
+WITH calc AS (SELECT Participant_Code, Outage_Reason, Year, 
+        COUNT(Participant_Code) AS Total_Number_Outage_Events, 
+        AVG(ABS(JULIANDAY(End_Time) - JULIANDAY(Start_Time))) AS Average_Outage_Duration_In_Days, 
+        Status
+FROM AEMR_Outage_Table
+GROUP BY Participant_Code, Outage_Reason, Year, Status)
+
+SELECT Participant_Code, Outage_Reason, Year, Total_Number_Outage_Events, Average_Outage_Duration_In_Days, 
+    CASE 
+                WHEN Outage_Reason != 'Forced' THEN 'N/A'
+                WHEN Average_Outage_Duration_In_Days < 0.5 OR Total_Number_Outage_Events > 20 THEN 'Low Risk'
+                WHEN (Average_Outage_Duration_In_Days >= 0.5 AND Average_Outage_Duration_In_Days <= 1) OR 
+                    (Total_Number_Outage_Events >= 10 AND Total_Number_Outage_Events <= 20) THEN 'Medium Risk'
+                WHEN Average_Outage_Duration_In_Days > 1 OR Total_Number_Outage_Events < 10 THEN 'High Risk'
+        END AS Risk_Classification
+FROM calc
+WHERE Status = 'Approved' 
+GROUP BY  Year, Participant_Code, Outage_Reason, Risk_Classification
+ORDER BY Participant_Code, Outage_Reason;
+
+################################################################
+# Number and events of forced outages over the years. 
+%%sql
+WITH total AS (
+    SELECT Year, COUNT(Participant_Code) AS totalcount
+    FROM AEMR_Outage_Table
+    WHERE Status = 'Approved'
+    GROUP BY Year
+), 
+
+forced AS (
+    SELECT Year, COUNT(Participant_Code) AS forcedcount
+    FROM AEMR_Outage_Table
+    WHERE Status = 'Approved' AND Outage_Reason = 'Forced'
+    GROUP BY Year
+)
+
+SELECT Year, totalcount AS Total_Number_Outage_Events, forcedcount AS Total_Number_Forced_Outage_Events, 
+        ROUND(forcedcount*100.00/totalcount, 2) AS Pct_Outage_Forced
+FROM forced
+FULL JOIN total USING (Year)
+GROUP BY Year; 
+
+################################################################
+# Analysis of Energy Lost
+%%sql
+SELECT 
+    COUNT(Outage_Reason) AS Total_Number_Outages, 
+    ROUND(SUM(ABS(JULIANDAY(End_Time) - JULIANDAY(Start_Time))),2) AS Total_Duration_In_Days,
+    ROUND(SUM(Energy_Lost_MW),2) AS Total_Energy_Lost,
+    Outage_Reason,
+    Participant_Code, 
+    facility_code,
+    Year
+FROM AEMR_Outage_Table
+WHERE Status = 'Approved'
+GROUP BY Outage_Reason, Participant_Code, facility_code, Year
+ORDER BY  Total_Duration_In_Days DESC;
+
+################################################################
+# Energy Lost for only Forced outages
+%%sql
+SELECT ROUND(AVG(ABS(JULIANDAY(End_Time) - JULIANDAY(Start_Time))),2) AS Avg_Duration_In_Days,
+        ROUND(AVG(Energy_Lost_MW), 2) AS Avg_Energy_Lost, 
+        Outage_Reason, Participant_Code, Facility_Code, Year
+FROM AEMR_Outage_Table
+WHERE Status = 'Approved' 
+    AND Outage_Reason = 'Forced'
+GROUP BY Participant_Code, facility_code, Year
+ORDER BY Avg_Duration_In_Days DESC; 
+
+################################################################
+# Include Average Energy Lost and Percent Energy Lost to analysis
+%%sql
+SELECT 
+Year, Participant_Code, Facility_Code, Outage_Reason,
+    ROUND(SUM(Energy_Lost_MW), 2) AS Total_Energy_Lost, 
+    ROUND(AVG(Energy_Lost_MW), 2) AS Average_Energy_Lost,
+    ROUND (SUM(Energy_Lost_MW)*100.00/
+        (SELECT SUM(Energy_Lost_MW) FROM AEMR_Outage_Table WHERE Energy_Lost_MW IS NOT NULL 
+            AND Status = 'Approved'     
+                AND Outage_Reason = 'Forced'), 2) AS Pct_Energy_Loss
+FROM AEMR_Outage_Table
+WHERE Status = 'Approved' 
+    AND Outage_Reason = 'Forced'
+GROUP BY Year, Participant_Code, Facility_Code, Outage_Reason
+ORDER BY Total_Energy_Lost DESC, Year;
+
+################################################################
+# Identify top 3 participatns across the top 3 facilities based on total energy los and percentage lost, along with discriotion (rank 1)
+%%sql
+SELECT 
+Participant_Code, 
+Facility_Code, 
+Description_Of_Outage, 
+ROUND(SUM(Energy_Lost_MW), 2) AS Total_Energy_Lost,
+ROUND (SUM(Energy_Lost_MW)*100.00/
+        (SELECT SUM(Energy_Lost_MW) FROM AEMR_Outage_Table WHERE Energy_Lost_MW IS NOT NULL 
+            AND Status = 'Approved' 
+            AND Outage_Reason = 'Forced'), 2)
+            AS Pct_Energy_Loss, 
+RANK () OVER (PARTITION BY Participant_Code, Facility_Code ORDER BY ROUND(SUM(Energy_Lost_MW), 2) DESC) AS rank
+
+FROM AEMR_Outage_Table
+
+WHERE Status = 'Approved' 
+    AND Outage_Reason = 'Forced'
+    AND Participant_Code IN ('GW', 'MELK', 'AURICON')
+    
+GROUP BY 
+    Participant_Code, 
+    Facility_Code, 
+    Description_Of_Outage
+    
+ORDER BY 
+    rank
+
+LIMIT 3; 
+
+
+
+
