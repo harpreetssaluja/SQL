@@ -1,0 +1,20 @@
+%%sql
+WITH total AS (
+    SELECT Year, COUNT(Participant_Code) AS totalcount
+    FROM AEMR_Outage_Table
+    WHERE Status = 'Approved'
+    GROUP BY Year
+), 
+
+forced AS (
+    SELECT Year, COUNT(Participant_Code) AS forcedcount
+    FROM AEMR_Outage_Table
+    WHERE Status = 'Approved' AND Outage_Reason = 'Forced'
+    GROUP BY Year
+)
+
+SELECT Year, totalcount AS Total_Number_Outage_Events, forcedcount AS Total_Number_Forced_Outage_Events, 
+        ROUND(forcedcount*100.00/totalcount, 2) AS Pct_Outage_Forced
+FROM forced
+FULL JOIN total USING (Year)
+GROUP BY Year; 
