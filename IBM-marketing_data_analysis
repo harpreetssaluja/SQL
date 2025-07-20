@@ -1,0 +1,105 @@
+/* Q1
+SELECT state, 
+SUM(total_claim_amount) AS claims
+FROM IBMWatsonMarketingCustomerValueData
+GROUP BY state
+ORDER BY claims DESC
+LIMIT 10; */ 
+
+/* Q2
+SELECT vehicle_class, 
+COUNT (vehicle_class) as num
+FROM IBMWatsonMarketingCustomerValueData
+GROUP BY vehicle_class
+ORDER BY num DESC
+LIMIT 10; */ 
+
+/* Q3
+SELECT employmentstatus, 
+AVG(customer_lifetime_value) as aclf
+FROM IBMWatsonMarketingCustomerValueData
+GROUP BY employmentstatus
+ORDER BY aclf DESC
+LIMIT 1; 
+*/ 
+
+/* Q6
+SELECT vehicle_class,
+AVG(total_claim_amount) AS atca
+FROM IBMWatsonMarketingCustomerValueData
+GROUP BY vehicle_class
+ORDER BY atca DESC
+LIMIT 5; 
+*/
+
+/* Q7
+SELECT policy_type AS type,
+vehicle_size AS size,
+SUM(total_claim_amount) as total, 
+AVG(total_claim_amount) AS mean
+FROM IBMWatsonMarketingCustomerValueData
+Group BY type, size
+ORDER BY mean, total DESC; 
+*/
+
+/* Q8
+SELECT gender, 
+ROUND (COUNT (*) * 100.0 / (
+  SELECT COUNT (*)
+  FROM IBMWatsonMarketingCustomerValueData
+), 2) AS percent
+FROM IBMWatsonMarketingCustomerValueData
+GROUP BY gender
+ORDER BY percent; 
+*/ 
+
+/* Q9
+SELECT sales_channel, 
+ROUND (SUM (total_claim_amount), 2) AS total, 
+ROUND(
+  SUM (total_claim_amount) * 100.0 / (
+  	SELECT SUM(total_claim_amount)
+  	FROM IBMWatsonMarketingCustomerValueData )
+  ,2) AS percent
+FROM IBMWatsonMarketingCustomerValueData
+GROUP BY sales_channel
+ORDER BY percent DESC; 
+*/ 
+
+/* Q10
+SELECT coverage, 
+ROUND (COUNT(response) * 100.0 / 
+	(SELECT COUNT (*) FROM IBMWatsonMarketingCustomerValueData), 2) AS percent
+FROM IBMWatsonMarketingCustomerValueData
+WHERE response = 'Yes'
+GROUP BY coverage
+ORDER BY percent DESC; */ 
+
+/* Q11
+SELECT 
+  employmentstatus,
+  COUNT(CASE WHEN income > 50000 THEN 1 END) * 100.0 / COUNT(*) AS percent_above_50k,
+  AVG(income) AS avg_income
+FROM IBMWatsonMarketingCustomerValueData
+GROUP BY employmentstatus
+ORDER BY percent_above_50k DESC;
+*/ 
+
+/* Q12
+SELECT state, 
+AVG(total_claim_amount) as mean_claim
+FROM IBMWatsonMarketingCustomerValueData
+GROUP BY state
+ORDER by mean_claim DESC
+LIMIT 1; 
+*/ 
+
+/* Q15
+SELECT location_code, 
+COUNT(*) as num, 
+ROUND (Count(*) * 100.0 / (
+  SELECT COUNT (*) FROM IBMWatsonMarketingCustomerValueData), 2) AS percent
+FROM IBMWatsonMarketingCustomerValueData
+GROUP BY location_code
+ORDER BY percent DESC, num DESC; 
+*/ 
